@@ -262,18 +262,18 @@
 <p>In practical terms: if an editor reviews the top 100 pages of the queue, the model surfaces roughly 64 that actually declined in April, compared to roughly 45 for the hand-written rule — about <strong>19 additional true positives per 100 pages reviewed</strong>. The baseline's ROC-AUC of 0.502 is essentially chance; the hand-written rule's ordering is no better than random on the held-out clients. The model's 0.614 is modest but clearly above chance.</p>
 
 <figure>
-  <img src="https://github.com/Asma-Nasr/Flyrank_ML_Internship/blob/main/work/figures/w07_queue_composition.png" alt="Queue composition by action and by reason code." />
-  <figcaption><strong>Fig 1.</strong> The queue is dominated by <code>CTR_BELOW_PEERS</code> (88,939 of 88,941 rows). This reflects the model's permutation importance: CTR is by far its strongest driver, and staleness contributes nothing. An editor using this queue is effectively reviewing pages for CTR underperformance, not for age.</figcaption>
+  <img src="https://raw.githubusercontent.com/Asma-Nasr/Flyrank_ML_Internship/main/work/figures/w07_queue_composition.png" alt="Queue composition by action and by reason code." />
+  <figcaption>...</figcaption>
 </figure>
 
 <figure>
-  <img src="[https://github.com/Asma-Nasr/Flyrank_ML_Internship/blob/main/work/figures/w04_ctr_vs_position.png]" alt="Decline rate by CTR quartile within each position bucket." />
-  <figcaption><strong>Fig 2.</strong> At every position bucket, pages in the bottom CTR quartile decline at roughly 1.5–2× the rate of pages in the top quartile. The CTR-vs-position signal is real and survives in the March→April slice — this is the signal the model leans on most heavily.</figcaption>
+  <img src="https://raw.githubusercontent.com/Asma-Nasr/Flyrank_ML_Internship/main/work/figures/w04_ctr_vs_position.png" alt="Decline rate by CTR quartile within each position bucket." />
+  <figcaption>...</figcaption>
 </figure>
 
 <figure>
-  <img src="[https://github.com/Asma-Nasr/Flyrank_ML_Internship/blob/main/work/figures/w06_per_fold_comparison.png]" alt="Precision@10% per fold, model versus baseline." />
-  <figcaption><strong>Fig 3.</strong> The model beats the baseline on all five folds. The baseline's performance swings wildly across folds (0.253 to 0.687) — a symptom of its fixed weights not adapting to different client portfolios — while the model stays above it in every case.</figcaption>
+  <img src="https://raw.githubusercontent.com/Asma-Nasr/Flyrank_ML_Internship/main/work/figures/w06_per_fold_comparison.png" alt="Precision@10% per fold, model versus baseline." />
+  <figcaption>...</figcaption>
 </figure>
 
 <h3>Per-fold detail</h3>
