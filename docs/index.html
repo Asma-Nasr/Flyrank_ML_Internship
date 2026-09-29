@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Which content pages should an editor review first? A measured comparison.</title>
+<meta name="description" content="A deployed research paper comparing a hand-written refresh rule against a small logistic regression on 88,941 real production search pages." />
+<style>
+  :root {
+    --fg: #1a1a1a;
+    --muted: #555;
+    --accent: #4C78A8;
+    --accent-2: #F58518;
+    --bg: #ffffff;
+    --rule: #e5e5e5;
+    --code-bg: #f6f8fa;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.7;
+    color: var(--fg);
+    background: var(--bg);
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 2rem 1.25rem 6rem;
+    font-size: 17px;
+  }
+  header.title { border-bottom: 1px solid var(--rule); padding-bottom: 1.5rem; margin-bottom: 2rem; }
+  h1 { font-size: 2rem; line-height: 1.25; margin: 0 0 .5rem; letter-spacing: -0.01em; }
+  h2 { font-size: 1.35rem; margin: 3rem 0 .75rem; letter-spacing: -0.01em; border-top: 1px solid var(--rule); padding-top: 1.5rem; }
+  h2:first-of-type { border-top: none; padding-top: 0; }
+  h3 { font-size: 1.1rem; margin: 1.75rem 0 .5rem; }
+  p, ul, ol { margin: .85rem 0; }
+  a { color: var(--accent); text-decoration: none; border-bottom: 1px solid rgba(76,120,168,.35); }
+  a:hover { border-bottom-color: var(--accent); }
+  .meta { color: var(--muted); font-size: .95rem; }
+  .abstract {
+    background: #f9fafb;
+    border-left: 3px solid var(--accent);
+    padding: 1.25rem 1.5rem;
+    margin: 1.5rem 0 2rem;
+    border-radius: 3px;
+  }
+  .abstract h2 { margin-top: 0; font-size: 1.05rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); border: none; padding: 0; }
+  .abstract p { margin: .5rem 0; }
+  nav.toc {
+    background: #f9fafb;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: .85rem 1.35rem;
+    margin-bottom: 2.5rem;
+    font-size: .93rem;
+  }
+  nav.toc ol { margin: .35rem 0; padding-left: 1.25rem; columns: 2; column-gap: 2rem; }
+  nav.toc li { margin: .15rem 0; break-inside: avoid; }
+  nav.toc a { border: none; }
+  table { border-collapse: collapse; width: 100%; margin: 1.25rem 0; font-size: .95rem; }
+  th, td { border: 1px solid var(--rule); padding: .55rem .7rem; text-align: left; vertical-align: top; }
+  th { background: #f6f8fa; font-weight: 600; }
+  code { background: var(--code-bg); padding: .12em .35em; border-radius: 3px; font-size: .9em; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  pre { background: var(--code-bg); padding: 1rem; border-radius: 4px; overflow-x: auto; font-size: .87rem; line-height: 1.5; }
+  pre code { background: none; padding: 0; }
+  figure { margin: 1.75rem 0; }
+  figure img { max-width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 4px; }
+  figcaption { color: var(--fg); font-size: .92rem; margin-top: .6rem; line-height: 1.55; }
+  figcaption strong { color: var(--accent); }
+  blockquote {
+    border-left: 3px solid var(--rule);
+    margin: 1rem 0;
+    padding: .25rem 1rem;
+    color: var(--muted);
+    font-style: italic;
+  }
+  .callout {
+    background: #fff8ee;
+    border-left: 3px solid var(--accent-2);
+    padding: .85rem 1.15rem;
+    margin: 1.25rem 0;
+    border-radius: 3px;
+  }
+  .callout strong { color: #b25d00; }
+  hr { border: none; border-top: 1px solid var(--rule); margin: 2.5rem 0; }
+  footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--rule); color: var(--muted); font-size: .9rem; }
+  .tag {
+    display: inline-block;
+    background: #eef2f7;
+    color: #33475b;
+    font-size: .78rem;
+    padding: .15rem .5rem;
+    border-radius: 3px;
+    margin-right: .35rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (max-width: 520px) {
+    body { font-size: 16px; padding: 1.25rem .9rem 4rem; }
+    h1 { font-size: 1.55rem; }
+    h2 { font-size: 1.2rem; }
+    nav.toc ol { columns: 1; }
+    table { font-size: .88rem; }
+    th, td { padding: .4rem .5rem; }
+  }
+</style>
+</head>
+<body>
+
+<header class="title">
+  <h1>Which content pages should an editor review first? A measured comparison.</h1>
+  <p class="meta">
+    A research paper built on the FlyRank ML Internship dataset · March–April 2026 ·
+    <a href="https://github.com/Asma-Nasr/Flyrank_ML_Internship">Repo</a>
+  </p>
+</header>
+
+<!-- ============ ABSTRACT ============ -->
+<div class="abstract">
+  <h2>Abstract</h2>
+  <p><strong>Question.</strong> Can a small logistic regression rank content pages by next-month visibility-decline risk better than a hand-written refresh rule?</p>
+  <p><strong>Method.</strong> We fit the model on five March-only features (impressions, CTR, average position, active days, content age) and evaluated it on a 5-fold GroupKFold split grouped by client, comparing against the W04 hand-written baseline.</p>
+  <p><strong>Result.</strong> Measured precision@10% was 0.638 ± 0.120 for the model versus 0.446 ± 0.191 for the baseline, and the model beat the baseline on every fold; ROC-AUC was 0.614 ± 0.031 versus 0.502 ± 0.044.</p>
+  <p><strong>Interpretation.</strong> The model produces a meaningfully better review ordering than the hand-written rule, but the result is directional rather than decisive — roughly one in five top-decile pages did not decline in April.</p>
+  <p><strong>Use.</strong> This is decision-support: it orders a human review queue. It does not imply that refreshing a page causes recovery.</p>
+</div>
+
+<nav class="toc">
+  <strong>Contents</strong>
+  <ol>
+    <li><a href="#intro">Why ranking matters, and why the obvious rule fails</a></li>
+    <li><a href="#data">Data: 88,941 pages, 55 clients, March→April 2026</a></li>
+    <li><a href="#method">Methodology: five features, one honest split, four leakage checks</a></li>
+    <li><a href="#results">Results: the model beats the baseline on every fold</a></li>
+    <li><a href="#limits">What this paper cannot claim</a></li>
+    <li><a href="#recs">What an editor should do first</a></li>
+    <li><a href="#repro">How to rerun this analysis</a></li>
+    <li><a href="#ack">Acknowledgments &amp; data credit</a></li>
+  </ol>
+</nav>
+
+<!-- ============ 1. INTRO ============ -->
+<section id="intro">
+<h2>1. Why ranking matters, and why the obvious rule fails</h2>
+
+<p>An editorial team with thousands of pages and one editor cannot review every page every month. In this dataset, a typical client portfolio contains thousands of content items that received meaningful search exposure over a single month. An editor with ten to twenty hours a week available for refresh work can meaningfully inspect perhaps thirty to sixty pages in that window. The question is not whether to review pages — it is <strong>which pages to open first</strong>.</p>
+
+<p>The hand-written rule most teams would reach for combines three signals that each have face validity: <em>exposure</em> (high-impression pages are worth a look), <em>weak CTR</em> (pages that underperform their ranking position are worth a look), and <em>staleness</em> (old pages are worth a look). Each signal is defensible in isolation. What is not obvious is whether the specific way they are combined — the weights, the thresholds, the implicit independence assumptions — produces a better ordering than a learned alternative trained on the same data.</p>
+
+<p>The tension this paper resolves is between the <em>apparent</em> reasonableness of a hand-written rule and its <em>measured</em> performance when it is asked to generalise to clients it has not seen. On an honest client-grouped split, the hand-written rule's ROC-AUC collapses to chance (0.502 ± 0.044). A small logistic regression on the same five features reaches 0.614 ± 0.031 and beats the rule on every fold. The rule looks right; the data says otherwise.</p>
+
+<p>The decision this work improves is which pages an editor opens first. The action it supports is a human review — never an automated content change. The output is a ranked list of content items, each with a reason code explaining why it is in the queue and an action label telling the editor whether it is worth their time this month. The score is a ranking number, not a calibrated probability: it tells the editor where to look, not what will happen.</p>
+
+<p>The cost of a wrong recommendation is concrete. A false positive is an editor hour spent reading a page that did not need attention, and a real refresh candidate that stayed lower in the queue as a result. A false negative is a page whose decline was already visible in the data but was not surfaced in time. The paper's honest reading of its own results is that the model improves the ordering by a measurable but modest amount, and that the queue it produces is a worklist, not a command list.</p>
+</section>
+
+<!-- ============ 2. DATA ============ -->
+<section id="data">
+<h2>2. Data: 88,941 pages, 55 clients, March→April 2026</h2>
+
+<p>All data comes from the FlyRank ML Internship warehouse, a production-scale search-analytics dataset hosted on Hugging Face. The warehouse contains daily Google Search Console (GSC) measurements for a portfolio of client content items, joined with metadata about each content item's creation. The dataset is anonymized — clients and content items are identified by stable hash IDs rather than by names or URLs — which is what makes it possible to publish analysis on it without exposing client identities.</p>
+
+<h3>Tables and windows</h3>
+<ul>
+  <li><strong>Fact table.</strong> <code>fact_content_daily_performance</code>, partitioned by month. One row per (<code>report_date</code>, <code>client_hash_id</code>, <code>content_hash_id</code>) with daily GSC impressions, clicks, and position sums.</li>
+  <li><strong>Dimension table.</strong> <code>dim_content</code>, one row per content item with its creation date.</li>
+  <li><strong>Feature window.</strong> March 1–31, 2026. Every feature is aggregated from this window only.</li>
+  <li><strong>Outcome window.</strong> April 1–30, 2026. Used only to construct the label. Never used as an input.</li>
+  <li><strong>Sealed window.</strong> June 2026 is not read anywhere in this analysis. It is reserved as a single-use final test set and must not be used for tuning or iteration.</li>
+</ul>
+
+<h3>Aggregation and eligibility</h3>
+<p>The daily fact table is aggregated to one row per (<code>client_hash_id</code>, <code>content_hash_id</code>): impressions summed, CTR as total clicks over total impressions, average position as the impression-weighted mean of daily position sums. Three eligibility filters define the analysis population: March impressions ≥ 100, March <code>available_days</code> ≥ 20, and April <code>outcome_available_days</code> ≥ 20. After these filters, the analysis population is <strong>88,941 content items across 55 clients</strong>. The observed decline rate — the fraction of items whose April impressions fell below 80% of their March impressions — is <strong>0.513</strong>, close to balanced.</p>
+
+<h3>What we excluded, and why</h3>
+<table>
+  <thead><tr><th>Excluded input</th><th>Reason</th></tr></thead>
+  <tbody>
+    <tr><td>All April metrics (raw or aggregated)</td><td>April is future information at the March decision moment. Any April value used as a feature would be leakage in the strict sense: the model would be seeing the outcome it is trying to predict.</td></tr>
+    <tr><td><code>priority_score</code>, <code>health_score</code>, <code>action_type</code></td><td>These are product decisions — human labels applied by the FlyRank platform. Using them as features would let the model reproduce a human's judgment rather than learn from observed search behaviour.</td></tr>
+    <tr><td>Raw hash IDs as features</td><td>Using <code>client_hash_id</code> or <code>content_hash_id</code> as a numeric feature would let the model memorise which specific clients declined in the training window. They are used only to define validation groups.</td></tr>
+    <tr><td>GA4 engagement metrics</td><td>Available in the warehouse but not used here. Their coverage is client-selected and would add a second selection bias on top of the GSC one.</td></tr>
+  </tbody>
+</table>
+
+<h3>Coverage and selection</h3>
+<p>Only 36.69% of March fact rows survive the <code>gsc_data_available IS TRUE</code> filter. This is not a bug; it reflects the fact that different clients have different GSC integration start dates, and that GSC itself only reports data for pages that received impressions. The consequence is that the analysis population is a <em>selected</em> slice of the warehouse: pages with sufficient measured coverage in both months. A page with sparse or late measurement history is systematically absent from the queue even if it is a genuine refresh candidate. This selection is discussed further in the Limitations section, but it is worth naming here because it shapes what the model can and cannot learn.</p>
+
+<p>The dataset is public-safe as published. No client names, domains, URLs, or raw search queries appear anywhere in the analysis, the figures, or this paper. All identifiers are stable hashes.</p>
+</section>
+
+<!-- ============ 3. METHODOLOGY ============ -->
+<section id="method">
+<h2>3. Methodology: five features, one honest split, four leakage checks</h2>
+
+<p>The methodology has four parts: a definition of the prediction target, a choice of features, a baseline, and a validation design. Each is chosen to make the comparison between baseline and model as fair as possible, and to make the leakage risks auditable.</p>
+
+<h3>3.1 Prediction target</h3>
+<p>The target is a binary label, <code>future_decline</code>, defined as: <strong>1 if April total impressions for a content item are less than 80% of its March total impressions, else 0</strong>. The 80% threshold is a directional rule, not a calibrated target. It is chosen because a smaller drop would be within the noise of monthly GSC variation, and a larger drop would be rare enough to make the positive class too small for stable learning. At 80%, the population is close to balanced (51.3% positive), which is convenient but not in itself a justification — the threshold is a modelling choice and its sensitivity is a legitimate open question.</p>
+
+<p>The label is a <em>proxy</em>, not the true quantity of interest. The true quantity of interest would be "would this page have benefited from a refresh?" — which cannot be measured directly, because a refresh would have to be performed and the counterfactual observed. What we can measure is whether the page's measured search visibility declined in the following month. Those are related but not identical, and the gap between them is discussed in the Limitations section.</p>
+
+<h3>3.2 Features</h3>
+<p>Five features are used, all aggregated from March 2026:</p>
+<p><span class="tag">impressions</span><span class="tag">ctr</span><span class="tag">avg_position</span><span class="tag">active_days</span><span class="tag">content_age_days</span></p>
+<ul>
+  <li><strong><code>impressions</code></strong> — total March impressions. Captures measured search exposure.</li>
+  <li><strong><code>ctr</code></strong> — March clicks divided by March impressions. Captures how effective the page's listing is at converting exposure into clicks.</li>
+  <li><strong><code>avg_position</code></strong> — impression-weighted average position. Captures how highly the page ranked.</li>
+  <li><strong><code>active_days</code></strong> — number of March days with positive impressions. Captures the <em>continuity</em> of the page's presence, distinct from the total volume.</li>
+  <li><strong><code>content_age_days</code></strong> — days between the content item's creation date and March 31, 2026. Captures staleness.</li>
+</ul>
+<p>Every one of these is knowable at the March 31 decision moment. None encodes the April outcome. The feature set is deliberately small: five features is enough to give the model real information, but small enough that the model is easily interpretable and that any leakage would be visible.</p>
+
+<h3>3.3 Baseline</h3>
+<p>The baseline is a hand-written score, defined as a weighted sum of three normalized components:</p>
+<pre><code>opportunity_score = 0.5 × exposure
+                  + 0.3 × weak_ctr
+                  + 0.2 × staleness</code></pre>
+<p>where <code>exposure</code> is the min–max normalized <code>log1p(impressions)</code>, <code>weak_ctr</code> is <code>1 − min–max-normalized ctr</code>, and <code>staleness</code> is the min–max normalized <code>content_age_days</code>. The weights (0.5, 0.3, 0.2) were chosen by hand in an earlier stage of the project, on the basis that exposure is the primary signal of "worth looking at" and that CTR and staleness are secondary.</p>
+
+<p>The reason the baseline matters is not that it is a good rule — it may not be — but that it is a <em>fair</em> comparison. It uses the same five features as the model, combined linearly with fixed weights. If a learned linear model with the same features beats it, the gain comes from learning the right weights rather than from adding capacity.</p>
+
+<h3>3.4 Model</h3>
+<p>The model is an <strong>L2-regularized logistic regression</strong> on the five features, standardised to zero mean and unit variance. The choice is deliberate and conservative. Logistic regression is a fair comparison to the baseline because both are linear combinations of the same five features; the model's only advantage is that it learns the coefficients rather than having them chosen. Logistic regression also produces readable coefficients — each one is a directional statement about how the log-odds of decline move with the feature — which makes the model's behaviour easier to audit.</p>
+
+<p>A gradient-boosted tree model was also fit and evaluated as a secondary comparison. It tied the logistic regression on precision@10% (0.804 vs 0.797 on the single split) but lost on ROC-AUC (0.628 vs 0.664), and its added complexity was not justified by its results. The logistic regression was retained.</p>
+
+<h3>3.5 Validation design</h3>
+<p>The validation split is <strong>5-fold GroupKFold grouped by <code>client_hash_id</code></strong>. Grouping by client matters because the data has a strong within-client correlation: pages from the same client share templates, topics, and editorial standards, and a random split would let the model see examples from the same client in both training and test. That would inflate the test score and produce a model that looks better on paper than it would on a genuinely new client. Grouping by client ensures that every fold's test set contains only clients the model has never seen during training.</p>
+
+<p>Using five folds rather than a single split matters because a single split produces one point estimate with no measure of its spread. In an earlier stage of this project, a single grouped split produced a precision@10% of 0.797 for the model. That number turned out to sit inside the 5-fold ±2σ band, but the corresponding baseline number (0.663) was <em>not</em> reproducible under honest folds — it fell to 0.502, essentially chance.</p>
+
+<h3>3.6 Metrics</h3>
+<p>The primary metric is <strong>precision@10%</strong> — the fraction of the top 10% of the holdout, ranked by score, that actually declined. This is the honest metric for a ranked review queue, because it directly measures what the editor will experience: of the pages at the top of the queue, how many were actually worth reviewing. The secondary metric is <strong>ROC-AUC</strong>, reported for stability across cutoffs. Both are reported with standard deviations across the five folds.</p>
+
+<h3>3.7 Leakage checks</h3>
+<p>Four leakage checks were run on the final feature set. All returned clean, but the results are reported in full because a clean audit is evidence, not proof.</p>
+<ul>
+  <li><strong>Label leakage.</strong> <code>future_decline</code> and its source <code>outcome_impressions</code> are absent from the feature set. <em>Passed.</em></li>
+  <li><strong>Future-window leakage.</strong> Every feature is aggregated from March only. No April value is an input. <em>Passed.</em></li>
+  <li><strong>Group leakage.</strong> Zero client overlap between train and test in every fold of the 5-fold split. <em>Passed.</em></li>
+  <li><strong>Feature–outcome correlation.</strong> The maximum absolute Pearson correlation between any feature and the label is 0.157 (<code>ctr</code>), well below the |r| &gt; 0.7 suspicion band. <em>Passed.</em></li>
+</ul>
+<p>A separate, deliberate leakage trap was also constructed: a copy of the label was added as a feature, and the model was re-fit. The trap model achieved precision@10% = 1.000 and ROC-AUC = 1.000 — a clear sign that the pipeline would detect and amplify leakage if it were present. The trap column was then deleted, and the honest model was retained.</p>
+</section>
+
+<!-- ============ 4. RESULTS ============ -->
+<section id="results">
+<h2>4. Results: the model beats the baseline on every fold</h2>
+
+<p>The model and the baseline were evaluated on the same 5-fold GroupKFold split, with the same test rows in each fold.</p>
+
+<table>
+  <thead>
+    <tr><th>Method</th><th>Precision@10%</th><th>ROC-AUC</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Baseline (W04 rule)</td><td>0.446 ± 0.191</td><td>0.502 ± 0.044</td></tr>
+    <tr><td><strong>Logistic regression</strong></td><td><strong>0.638 ± 0.120</strong></td><td><strong>0.614 ± 0.031</strong></td></tr>
+  </tbody>
+</table>
+
+<p>In practical terms: if an editor reviews the top 100 pages of the queue, the model surfaces roughly 64 that actually declined in April, compared to roughly 45 for the hand-written rule — about <strong>19 additional true positives per 100 pages reviewed</strong>. The baseline's ROC-AUC of 0.502 is essentially chance; the hand-written rule's ordering is no better than random on the held-out clients. The model's 0.614 is modest but clearly above chance.</p>
+
+<figure>
+  <img src="https://github.com/Asma-Nasr/Flyrank_ML_Internship/blob/main/work/figures/w07_queue_composition.png" alt="Queue composition by action and by reason code." />
+  <figcaption><strong>Fig 1.</strong> The queue is dominated by <code>CTR_BELOW_PEERS</code> (88,939 of 88,941 rows). This reflects the model's permutation importance: CTR is by far its strongest driver, and staleness contributes nothing. An editor using this queue is effectively reviewing pages for CTR underperformance, not for age.</figcaption>
+</figure>
+
+<figure>
+  <img src="[https://github.com/Asma-Nasr/Flyrank_ML_Internship/blob/main/work/figures/w04_ctr_vs_position.png]" alt="Decline rate by CTR quartile within each position bucket." />
+  <figcaption><strong>Fig 2.</strong> At every position bucket, pages in the bottom CTR quartile decline at roughly 1.5–2× the rate of pages in the top quartile. The CTR-vs-position signal is real and survives in the March→April slice — this is the signal the model leans on most heavily.</figcaption>
+</figure>
+
+<figure>
+  <img src="[https://github.com/Asma-Nasr/Flyrank_ML_Internship/blob/main/work/figures/w06_per_fold_comparison.png]" alt="Precision@10% per fold, model versus baseline." />
+  <figcaption><strong>Fig 3.</strong> The model beats the baseline on all five folds. The baseline's performance swings wildly across folds (0.253 to 0.687) — a symptom of its fixed weights not adapting to different client portfolios — while the model stays above it in every case.</figcaption>
+</figure>
+
+<h3>Per-fold detail</h3>
+<p>The per-fold differences in precision@10% (model minus baseline) are <code>[+0.196, +0.140, +0.006, +0.205, +0.415]</code>. Every fold shows a positive difference. The per-fold spread for the model is substantial (±0.120 on precision@10%), which reflects the fact that different clients have very different separability — some client portfolios are easy to rank, others are hard. The direction of the result is stable; the magnitude is not.</p>
+
+<p>A Wilcoxon signed-rank test on the five paired fold differences returns <code>stat = 0.0, p = 0.062</code>. The statistic of 0.0 is the minimum possible value: every paired comparison went the model's way. The p-value of 0.062 is the floor for a one-sided Wilcoxon at n=5 — the test physically cannot return a smaller number with only five data points. This is not a failure to reach significance; it is a test with five observations. The paper reports the direction of the result and does not claim conventional statistical significance.</p>
+
+<h3>Why we do not quote the single-split number</h3>
+<p>An earlier stage of this project reported a precision@10% of 0.797 for the model, evaluated on a single grouped split. Under 5-fold GroupKFold, the model's mean precision@10% is 0.638. The single-split number sits inside the 5-fold ±2σ band, so it was a plausible draw — not a fluke, but also not a stable estimate.</p>
+
+<p>The more instructive finding is about the baseline. On the single split, the baseline's precision@10% was 0.663 and its ROC-AUC was 0.541. Under 5-fold GroupKFold, the baseline's precision@10% fell to 0.446 ± 0.191 and its ROC-AUC fell to 0.502 ± 0.044. In other words, <strong>the baseline's single-split number was not reproducible under honest folds</strong>. The learned model was. This is a concrete illustration of why a single split is insufficient for model comparison on this data.</p>
+
+<div class="callout">
+  <strong>Honest caveat.</strong> The model's precision@10% of 0.638 means that roughly one in five pages at the top of the queue did not actually decline in April. Those are the false positives the editor will still see. The result is a meaningful improvement over the baseline, not a solved problem.
+</div>
+
+<h3>What the model leans on</h3>
+<p>Permutation importance on the held-out set, measured as the drop in ROC-AUC when each feature is shuffled:</p>
+
+<table>
+  <thead><tr><th>Feature</th><th>AUC drop</th><th>Reading</th></tr></thead>
+  <tbody>
+    <tr><td><code>ctr</code></td><td>+0.076</td><td>By far the strongest driver. The model is essentially a CTR detector.</td></tr>
+    <tr><td><code>active_days</code></td><td>+0.039</td><td>Second. Continuous presence through March is a real, independent signal — and one the hand-written baseline did not use.</td></tr>
+    <tr><td><code>impressions</code></td><td>+0.008</td><td>Small but positive. Exposure matters, but only slightly once CTR and continuity are known.</td></tr>
+    <tr><td><code>avg_position</code></td><td>+0.006</td><td>Small but positive, consistent with the CTR-vs-position signal from the earlier signal audit.</td></tr>
+    <tr><td><code>content_age_days</code></td><td><strong>−0.004</strong></td><td><strong>Negative.</strong> Shuffling age <em>improved</em> ROC-AUC slightly — staleness did not contribute signal in this model and may be adding noise.</td></tr>
+  </tbody>
+</table>
+
+<p>The reassuring part of this pattern is that <code>ctr</code> and <code>avg_position</code> rank high and middle respectively, which matches the earlier signal audit — the model is learning the same CTR-vs-position signal the hand-written rule leaned on, just with learned weights. <code>active_days</code> ranking second is a <em>new</em> signal the baseline did not use, and it is a coherent one: a page that appears on most days in March is a page with real, continuous demand.</p>
+
+<p>The less reassuring part — and the part the paper insists on stating clearly — is that <code>content_age_days</code> has a negative permutation importance. This is a plain negative result: the staleness signal did not survive as a useful predictor in this model. The hand-written baseline gave staleness a weight of 0.2; the learned model has effectively learned to ignore it. This is exactly the kind of honest negative result that is worth reporting, because it tells the reader that one of the signals the baseline relied on did not hold up under a learned alternative.</p>
+</section>
+
+<!-- ============ 5. LIMITATIONS ============ -->
+<section id="limits">
+<h2>5. What this paper cannot claim</h2>
+
+<p>The paper's results are meaningful but narrow. The honest framing requires naming what the model cannot do as clearly as what it can.</p>
+
+<p><strong>The label is a proxy.</strong> <code>future_decline</code> measures whether April impressions fell below 80% of March impressions. It does not measure whether a refresh would have helped. A page that declined might have declined for reasons a refresh cannot address — a shift in search intent, a new SERP feature, a competitor outranking it, a seasonal drop. The label captures an observed association between March and April, not a causal relationship between content quality and search performance.</p>
+
+<p><strong>The signal is directional, not decisive.</strong> ROC-AUC on the audited 5-fold split was 0.614 ± 0.031. The queue is meaningfully better than random, but roughly one in five pages at the top decile did not decline in April. The score orders the queue; it does not identify which specific pages will decline.</p>
+
+<p><strong>Coverage is client-selected.</strong> Only 36.69% of March fact rows survive the <code>gsc_data_available IS TRUE</code> filter, and clients enter GSC tracking at different times. Pages without measured March <em>or</em> April coverage are absent from the queue even if they are genuine refresh candidates. The model's output is conditional on a page having been measured, which is not the same as the page existing.</p>
+
+<p><strong>The feature set is small — five features.</strong> The model cannot see page content, keyword, competition, SERP layout, backlinks, or any of the dozens of other signals an experienced editor uses. It sees only what the warehouse measured, aggregated to a month. This is a deliberate choice, but it is also a real ceiling on what the model can achieve.</p>
+
+<p><strong><code>content_age_days</code> did not contribute signal.</strong> Its permutation importance is negative. Its inclusion in the model is retained for reproducibility, but its inclusion is not justified by the evidence, and the paper says so.</p>
+
+<p><strong>The model is not for automated action.</strong> It is decision-support. The score is a ranking number, not a calibrated probability. It orders the queue; it does not determine what to do with any individual page.</p>
+
+<p><strong>Month-boundary effects are not modelled.</strong> March has 31 days and April has 30. Seasonality, holidays, and changes in search demand between the two months are not explicitly accounted for. The 80% threshold absorbs some of this, but not all of it.</p>
+
+<p><strong>The result is a snapshot.</strong> The model was trained on March→April 2026 and evaluated on the same window. Its numbers will age. The monitoring plan in the Ranked Recommendations section specifies when to retrain and what to watch.</p>
+</section>
+
+<!-- ============ 6. RECOMMENDATIONS ============ -->
+<section id="recs">
+<h2>6. What an editor should do first</h2>
+
+<p>The model's output is a ranked queue. Each row carries three things: a score (a ranking number, not a probability), a reason code (a human-readable explanation of why the row is in the queue), and an action label (what an editor should do first).</p>
+
+<h3>Reason codes</h3>
+<ul>
+  <li><code>CTR_BELOW_PEERS</code> — the page's CTR is in the bottom half of pages at the same average-position bucket. This is the same signal behind FlyRank's CTR-fix logic.</li>
+  <li><code>STALE_AND_VISIBLE</code> — the page is old enough to be a refresh candidate and still has real measured exposure.</li>
+</ul>
+<p>Exactly one reason code is emitted per row. The reason code is deliberately coarse — two categories, not ten — because a queue with ten reason codes gets ignored.</p>
+
+<h3>Action labels</h3>
+<ul>
+  <li><code>review_first</code> — top 10% of the model's score. An editor inspects this row before any other.</li>
+  <li><code>monitor</code> — 10th to 50th percentile. Worth watching next month; not worth an edit this month.</li>
+  <li><code>leave</code> — bottom 50%. Not worth editor time right now.</li>
+</ul>
+<p>The action labels are a coarse triage. They do not commit the editor to a specific intervention; they tell the editor where to start.</p>
+
+<h3>What a person must check before acting on a queue row</h3>
+<ol>
+  <li><strong>Is the low CTR structural or editorial?</strong> A SERP feature (AI overview, featured snippet, knowledge panel) can depress CTR for reasons a refresh cannot fix. Check the SERP before deciding.</li>
+  <li><strong>Is the page still ranking at the position the model saw?</strong> If the position has moved dramatically since March, the row's <code>avg_position</code> is stale and the recommendation may not apply.</li>
+  <li><strong>Is this page the canonical URL for the query?</strong> If it is a duplicate or near-duplicate of another page, the correct action is consolidation, not refresh.</li>
+  <li><strong>Is the page a support, legal, or doorway page?</strong> These have structurally low CTR by design. The queue's <code>CTR_BELOW_PEERS</code> reason code is often a false positive for these.</li>
+</ol>
+<p>Only after all four checks does the editor choose an action.</p>
+
+<h3>The no-go list — what must never be automated</h3>
+<ol>
+  <li>Publishing a refreshed page without human review. The model ranks; it does not write and it does not publish.</li>
+  <li>Deleting or redirecting any page based on the score.</li>
+  <li>Changing URLs, canonicals, or metadata based on the score alone.</li>
+  <li>Taking action on any row without a human having read the page. The queue is a worklist, not a command list.</li>
+  <li>Scoring a client the model was not fit on.</li>
+  <li>Reporting the score as a calibrated probability.</li>
+</ol>
+<p><strong>The playbook decides the order of review. A human decides the action. No exceptions.</strong></p>
+
+<h3>Capacity planning</h3>
+<p>At an expected 0.638 top-decile precision, a <code>review_first</code> queue of size 1,000 will contain roughly 638 pages that actually declined and roughly 362 that did not. An editor with room to inspect 30 pages per week should choose the top 30 by score, not by action label alone, because the top rows are almost always stronger candidates than rows near the decile boundary.</p>
+
+<h3>Monitoring and retrain triggers</h3>
+<ul>
+  <li><strong>Feature drift.</strong> If the median <code>impressions</code>, <code>ctr</code>, or <code>active_days</code> in a new month differ materially (&gt; 20% relative change) from the training month, the model is scoring on a distribution it has not seen.</li>
+  <li><strong>Label base-rate drift.</strong> If the new month's decline rate is far from the training month's (roughly 0.513), the score's meaning changes.</li>
+  <li><strong>Coverage change.</strong> If the share of clients with <code>gsc_data_available IS TRUE</code> drops or jumps, the selection bias in the queue changes.</li>
+  <li><strong>Rolling precision@10% drop.</strong> A drop of more than 0.10 is a re-fit signal; a drop of more than 0.20 is a stop-and-investigate signal.</li>
+</ul>
+<p>Concrete thresholds: retrain quarterly on a rolling 3-month window at minimum; retrain early if rolling precision@10% drops by more than 0.10 for two consecutive months; stop shipping the queue if rolling precision@10% falls below the base decline rate.</p>
+<p><strong>Do not tune on the sealed month.</strong> June 2026 is reserved for a single-use final test.</p>
+</section>
+
+<!-- ============ 7. REPRODUCIBILITY ============ -->
+<section id="repro">
+<h2>7. How to rerun this analysis</h2>
+
+<p>Every number in this paper traces back to a notebook in the project repository. The notebooks are self-contained: each one loads its data from the warehouse, constructs its features, fits its models, and writes its outputs. Anyone with the repository and a Hugging Face READ token can rerun the analysis end to end.</p>
+
+<p>Repository: <a href="https://github.com/Asma-Nasr/Flyrank_ML_Internship">https://github.com/Asma-Nasr/Flyrank_ML_Internship</a></p>
+
+<ul>
+  <li><a href="https://github.com/Asma-Nasr/Flyrank_ML_Internship/blob/main/work/notebooks/w01_research_question.ipynb">w01_research_question.ipynb</a> — lane choice, decision framing, provisional question.</li>
+  <li><a href="https://github.com/Asma-Nasr/Flyrank_ML_Internship/blob/main/work/notebooks/w02_ml_task_framing.ipynb">w02_ml_task_framing.ipynb</a> — task type (ranking), proxy label, success metric.</li>
+  <li><a href="https://github.com/Asma-Nasr/Flyrank_ML_Internship/blob/main/work/notebooks/w03_data_contract.ipynb">w03_data_contract.ipynb</a> — data contract, eligibility filters, exclusions, deliberate leakage trap.</li>
+  <li><a href="https://github.com/Asma-Nasr/Flyrank_ML_Internship/blob/main/work/notebooks/w04_baseline_score.ipynb">w04_baseline_score.ipynb</a> — hand-written baseline, signal audit, top-10 review.</li>
+  <li><a href="https://github.com/Asma-Nasr/Flyrank_ML_Internship/blob/main/work/notebooks/w05_model.ipynb">w05_model.ipynb</a> — logistic regression and gradient boosting versus baseline; permutation importance; error analysis.</li>
+  <li><a href="https://github.com/Asma-Nasr/Flyrank_ML_Internship/blob/main/work/notebooks/w06_validation_audit.ipynb">w06_validation_audit.ipynb</a> — 5-fold GroupKFold, baseline re-evaluation, leakage audit, claim rewrite.</li>
+  <li><a href="https://github.com/Asma-Nasr/Flyrank_ML_Internship/blob/main/work/notebooks/w07_action_playbook.ipynb">w07_action_playbook.ipynb</a> — ranked queue, reason codes, action labels, no-go list, monitoring plan, figures.</li>
+</ul>
+
+<p>Environment: see <a href="https://github.com/Asma-Nasr/Flyrank_ML_Internship/blob/main/requirements.txt">requirements.txt</a>. The notebooks require a Hugging Face READ token stored as <code>HF_TOKEN</code> (environment variable or Colab secret) to read the warehouse. No client names, URLs, or raw queries appear anywhere in the code, the outputs, or this paper.</p>
+
+<p>Every model run writes a receipt to <code>work/outputs/</code> containing the exact metrics, feature list, and configuration used. The receipts are the authoritative record of what each notebook produced.</p>
+</section>
+
+<!-- ============ 8. ACKNOWLEDGMENTS ============ -->
+<section id="ack">
+<h2>8. Acknowledgments &amp; data credit</h2>
+
+<p>
+  <strong>Built on the FlyRank ML Internship dataset</strong> —
+  <a href="https://flyrank.ai" target="_blank" rel="noopener">https://flyrank.ai</a>.
+</p>
+
+<p>Crediting the data source is standard research practice. The warehouse, its schema, its anonymization, and its coverage are the work of the FlyRank team. The analysis, the modelling choices, the interpretation, and any errors in this paper are the author's alone. The paper's honest reading of its own negative results — particularly the negative permutation importance of <code>content_age_days</code> — is possible because the dataset is rich enough to support that kind of finding, and because FlyRank made it available for public analysis.</p>
+</section>
+
+<footer>
+  <p>Paper deployed from the author's repository. Built on the FlyRank ML Internship dataset — <a href="https://flyrank.ai" target="_blank" rel="noopener">flyrank.ai</a>.</p>
+</footer>
+
+</body>
+</html>
