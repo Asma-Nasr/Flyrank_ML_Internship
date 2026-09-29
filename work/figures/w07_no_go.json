@@ -1,0 +1,23 @@
+{
+  "no_go": [
+    "Publishing a refreshed page without human review",
+    "Deleting or redirecting any page based on the score",
+    "Changing URLs, canonicals, or metadata based on the score alone",
+    "Taking action on any row without a human having read the page",
+    "Scoring a client the model was not fit on",
+    "Reporting the score as a calibrated probability"
+  ],
+  "monitor_plan": {
+    "cadence": "monthly feature check, quarterly retrain minimum",
+    "feature_drift_threshold_pct": 20,
+    "label_drift_warning_band": [
+      0.4,
+      0.62
+    ],
+    "precision_drop_retrain": 0.1,
+    "precision_drop_investigate": 0.2,
+    "stop_shipping_below": "rolling precision@10% < base decline rate",
+    "sealed_month": "2026-06, single-use only, no tuning",
+    "retrain_window": "rolling 3-month window"
+  }
+}

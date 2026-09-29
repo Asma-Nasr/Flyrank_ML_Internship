@@ -1,0 +1,42 @@
+{
+  "lane": "refresh_content_opportunity_scoring",
+  "queue_rows": 88941,
+  "action_distribution": {
+    "leave": 44470,
+    "monitor": 35576,
+    "review_first": 8895
+  },
+  "reason_code_distribution": {
+    "CTR_BELOW_PEERS": 88939,
+    "STALE_AND_VISIBLE": 2
+  },
+  "audited_metrics": {
+    "precision@10_5fold": 0.638,
+    "precision@10_5fold_std": 0.12,
+    "roc_auc_5fold": 0.614,
+    "roc_auc_5fold_std": 0.031,
+    "baseline_precision@10_5fold": 0.446,
+    "baseline_roc_auc_5fold": 0.502
+  },
+  "features": [
+    "impressions",
+    "ctr",
+    "avg_position",
+    "active_days",
+    "content_age_days"
+  ],
+  "reason_codes": [
+    "CTR_BELOW_PEERS",
+    "STALE_AND_VISIBLE"
+  ],
+  "actions": [
+    "review_first",
+    "monitor",
+    "leave"
+  ],
+  "excluded_inputs": [
+    "April metrics",
+    "product flags",
+    "raw IDs as features"
+  ]
+}
